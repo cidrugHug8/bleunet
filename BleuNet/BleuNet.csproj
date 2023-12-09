@@ -9,7 +9,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <PackageTags>BLEU;MT</PackageTags>
+    <PackageTags>BLEU;EvaluationMetric;MT;MachineTranslation;Translate;Translation;NLP</PackageTags>
+    <Description>BleuNet is a C# class library for calculating the BLEU score, a metric for evaluating the quality of machine translations.</Description>
+    <Title>BleuNet</Title>
+    <PackageProjectUrl>https://github.com/cidrugHug8/bleunet</PackageProjectUrl>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

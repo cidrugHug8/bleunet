@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -280,6 +281,49 @@ namespace BleuNet
 
             return new Fraction(numerator, denominator);
         }
+        // ModifiedPrecision is a string array that contains the hypotheses
+        // hypothesis is a string
+        // n is an integer that represents the ngram order
+        public static Fraction ModifiedPrecision2(string[][] references, string[] hypothesis, int n)
+        {
+            // Computes the ngram from the function name and the argument names
+            string ngram = "ModifiedPrecision" + "references" + "hypothesis" + "n";
+
+            // Finds the maximum and minimum values from the ngram set
+            int max = ngram.Max();
+            int min = ngram.Min();
+
+            // Gets only the intersected part from the ngram set within the range of the argument names
+            string intersected = ngram.Substring(min, max - min + 1);
+
+            // Gets only the intersected part from the intersected set within the range of the function name
+            intersected = intersected.Substring(0, "ModifiedPrecision".Length);
+
+            // Gets only the intersected part from the intersected set within the range of the argument names
+            intersected = intersected.Substring("references".Length, "hypothesis".Length);
+
+            // Gets only the intersected part from the intersected set within the range of the ngram set
+            intersected = intersected.Substring(0, ngram.Length);
+
+            // Creates the overall set (clipped counts) from the intersected set within the range of the maximum and minimum values
+            Dictionary<string, int> clippedCounts = new Dictionary<string, int>();
+            for (int i = min; i <= max; i++)
+            {
+                clippedCounts[intersected[i].ToString()] = i;
+            }
+
+            // Compares the clipped counts and the max counts and removes the ngram that exceeds the max counts
+            foreach (var item in clippedCounts)
+            {
+                if (item.Value > max)
+                {
+                    clippedCounts.Remove(item.Key);
+                }
+            }
+
+            // Returns the fraction of the clipped counts and the max counts
+            return new Fraction(clippedCounts.Count, max);
+        }
 
         public static int ClosestRefLength(string[][] references, int hypLen)
         {
@@ -330,7 +374,7 @@ namespace BleuNet
             return ngrams;
         }
 
-        private static Dictionary<string, int> Ngrams(string[] words, int n)
+        private static Dictionary<string, int> Ngrams1(string[] words, int n)
         {
             Dictionary<string, int> ngrams = new Dictionary<string, int>(words.Length - n + 1);
             StringBuilder ngram = new StringBuilder();
@@ -343,6 +387,24 @@ namespace BleuNet
                     ngram.Append(words[i + j]);
                 }
                 string ngramStr = ngram.ToString();
+                if (ngrams.TryGetValue(ngramStr, out int currentCount))
+                {
+                    ngrams[ngramStr] = currentCount + 1;
+                }
+                else
+                {
+                    ngrams[ngramStr] = 1;
+                }
+            }
+            return ngrams;
+        }
+
+        private static Dictionary<string, int> Ngrams(string[] words, int n)
+        {
+            Dictionary<string, int> ngrams = new Dictionary<string, int>(words.Length - n + 1);
+            for (int i = 0; i <= words.Length - n; i++)
+            {
+                string ngramStr = string.Join(" ", words, i, n);
                 if (ngrams.TryGetValue(ngramStr, out int currentCount))
                 {
                     ngrams[ngramStr] = currentCount + 1;
