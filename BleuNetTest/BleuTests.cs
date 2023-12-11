@@ -103,7 +103,7 @@ namespace BleuNetTest
         public void TestFullMatches()
         {
             // Test case where there's 100% matches
-            string[][] references = new string[][] { "John loves Mary".Split() };
+            string[][] references = ["John loves Mary".Split()];
             string[] hypothesis = "John loves Mary".Split();
 
             // Test BLEU to nth order of n-grams, where n is len(hypothesis).
@@ -244,7 +244,7 @@ namespace BleuNetTest
             var refStr = "Their tasks include changing a pump on the faulty stokehold ."
                 + "Likewise , two species that are very similar in morphology "
                 + "were distinguished using genetics .";
-            var references = new string[][][] { new string[][] { refStr.Split() } };
+            var references = new string[][][] { [refStr.Split()] };
             var hypotheses = new string[][] { hyp };
 
             // Check that the warning is raised since no. of 2-grams < 0.
@@ -388,6 +388,54 @@ namespace BleuNetTest
                 weight3
             ));
 
+        }
+    }
+
+
+    public class TestRibes()
+    {
+        [Fact]
+        public void TestCorpusRibes0()
+        {
+            string[][][] references = [["The candidate has no alignment to any of the references".Split()]];
+            string[][] hypothesis = ["John loves Mary".Split()];
+            Assert.Equal(0.0, BleuScore.CorppusRibes(references, hypothesis));
+        }
+
+        [Fact]
+        public void TestCorpusRibes1()
+        {
+            string[][][] ref1 = [["He enjoys taking a walk in the park every day .".Split()]];
+            string[][] hyp1 = ["He likes to walk in the park daily .".Split()];
+            Assert.Equal(0.883743, BleuScore.CorppusRibes(ref1, hyp1), 0.000001);
+        }
+
+        [Fact]
+        public void TestCorpusRibes2()
+        {
+            string[][][] ref1 = [[
+                "He enjoys taking a walk in the park every day, and it's his daily routine to read the newspaper while drinking coffee at a cafe afterwards .".Split()
+            ]];
+            string[][] hyp1 = [
+                "He likes to walk in the park daily, and then enjoys his coffee at a cafe while reading the newspaper, which is his daily routine .".Split()
+            ];
+            Assert.Equal(0.678417, BleuScore.CorppusRibes(ref1, hyp1), 0.000001);
+        }
+
+        [Fact]
+        public void TestCorpusRibes3()
+        {
+            var ref1 = "He enjoys taking a walk in the park every day .".Split();
+            var ref2 = "He likes to read the newspaper while drinking coffee at a cafe .".Split();
+            string[][] hyp1 = [
+                "He likes to walk in the park daily, and then enjoys his coffee at a cafe while reading the newspaper .".Split()
+            ];
+
+            //Assert.Equal(0.561164, BleuScore.CorppusRibes([[ref1]], hyp1), 0.000001);
+            //Assert.Equal(0.634183, BleuScore.CorppusRibes([[ref2]], hyp1), 0.000001);
+
+            string[][][] references = [[ref1, ref2]];
+            Assert.Equal(0.634183, BleuScore.CorppusRibes(references, hyp1), 0.000001);
         }
     }
 }

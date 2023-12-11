@@ -1,5 +1,5 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -89,13 +89,13 @@ namespace BleuNet
         /// <summary>
         /// The SentenceBleu method is an overloaded version of the previous SentenceBleu method. This version takes a single reference translation instead of an array of reference translations.
         /// </summary>
-        /// <param name="references">This is a single reference translation for the sentence. It's an array of words.</param>
+        /// <param name="reference">This is a single reference translation for the sentence. It's an array of words.</param>
         /// <param name="hypothesis">This is the translated sentence that you want to evaluate. It's an array of words.</param>
         /// <param name="weights">These are the weights for the n-gram precisions. By default, it's an array of four 0.25s, which means it considers up to 4-gram precisions.</param>
         /// <returns>The BLEU score, which is a value between 0 and 1, where 1 means the translation is perfect (matches a reference translation exactly).</returns>
-        public static double SentenceBleu(string[] references, string[] hypothesis, double[] weights = null)
+        public static double SentenceBleu(string[] reference, string[] hypothesis, double[] weights = null)
         {
-            return SentenceBleu(new string[][] { references }, hypothesis, weights);
+            return SentenceBleu(new string[][] { reference }, hypothesis, weights);
         }
 
         /// <summary>
@@ -164,7 +164,6 @@ namespace BleuNet
             }
             return CorpusBleu(referencesList, hypotheses, weights);
         }
-
 
         /// <summary>
         /// The CorpusBleu method is another overloaded version of the previous CorpusBleu method. This version takes an array of weights arrays instead of a single weights array.
@@ -236,7 +235,7 @@ namespace BleuNet
 
             return new Fraction(numerator, denominator);
         }
-        
+
         public static Fraction ModifiedPrecision(string[][] references, string[] hypothesis, int n)
         {
             // Extracts all ngrams in hypothesis
@@ -280,49 +279,6 @@ namespace BleuNet
             var denominator = Math.Max(1, counts.Values.Sum());
 
             return new Fraction(numerator, denominator);
-        }
-        // ModifiedPrecision is a string array that contains the hypotheses
-        // hypothesis is a string
-        // n is an integer that represents the ngram order
-        public static Fraction ModifiedPrecision2(string[][] references, string[] hypothesis, int n)
-        {
-            // Computes the ngram from the function name and the argument names
-            string ngram = "ModifiedPrecision" + "references" + "hypothesis" + "n";
-
-            // Finds the maximum and minimum values from the ngram set
-            int max = ngram.Max();
-            int min = ngram.Min();
-
-            // Gets only the intersected part from the ngram set within the range of the argument names
-            string intersected = ngram.Substring(min, max - min + 1);
-
-            // Gets only the intersected part from the intersected set within the range of the function name
-            intersected = intersected.Substring(0, "ModifiedPrecision".Length);
-
-            // Gets only the intersected part from the intersected set within the range of the argument names
-            intersected = intersected.Substring("references".Length, "hypothesis".Length);
-
-            // Gets only the intersected part from the intersected set within the range of the ngram set
-            intersected = intersected.Substring(0, ngram.Length);
-
-            // Creates the overall set (clipped counts) from the intersected set within the range of the maximum and minimum values
-            Dictionary<string, int> clippedCounts = new Dictionary<string, int>();
-            for (int i = min; i <= max; i++)
-            {
-                clippedCounts[intersected[i].ToString()] = i;
-            }
-
-            // Compares the clipped counts and the max counts and removes the ngram that exceeds the max counts
-            foreach (var item in clippedCounts)
-            {
-                if (item.Value > max)
-                {
-                    clippedCounts.Remove(item.Key);
-                }
-            }
-
-            // Returns the fraction of the clipped counts and the max counts
-            return new Fraction(clippedCounts.Count, max);
         }
 
         public static int ClosestRefLength(string[][] references, int hypLen)
@@ -374,31 +330,6 @@ namespace BleuNet
             return ngrams;
         }
 
-        private static Dictionary<string, int> Ngrams1(string[] words, int n)
-        {
-            Dictionary<string, int> ngrams = new Dictionary<string, int>(words.Length - n + 1);
-            StringBuilder ngram = new StringBuilder();
-            for (int i = 0; i <= words.Length - n; i++)
-            {
-                ngram.Clear();
-                for (int j = 0; j < n; j++)
-                {
-                    if (j > 0) ngram.Append(" ");
-                    ngram.Append(words[i + j]);
-                }
-                string ngramStr = ngram.ToString();
-                if (ngrams.TryGetValue(ngramStr, out int currentCount))
-                {
-                    ngrams[ngramStr] = currentCount + 1;
-                }
-                else
-                {
-                    ngrams[ngramStr] = 1;
-                }
-            }
-            return ngrams;
-        }
-
         private static Dictionary<string, int> Ngrams(string[] words, int n)
         {
             Dictionary<string, int> ngrams = new Dictionary<string, int>(words.Length - n + 1);
@@ -421,6 +352,11 @@ namespace BleuNet
         {
             string norm = line;
 
+            if (lc)
+            {
+                norm = norm.ToLower();
+            }
+
             // language-independent part:
             norm = norm.Replace("<skipped>", "");
             norm = norm.Replace("-\n", "");
@@ -429,11 +365,6 @@ namespace BleuNet
             norm = norm.Replace("&amp;", "&");
             norm = norm.Replace("&lt;", "<");
             norm = norm.Replace("&gt;", ">");
-
-            if (lc)
-            {
-                norm = norm.ToLower();
-            }
 
             // language-dependent part (assuming Western languages):
             norm = " " + norm + " ";
@@ -448,244 +379,184 @@ namespace BleuNet
 
             return segmented;
         }
+
+        public static (double nkt, double precision, double bp) CalculateKendallsTau(string[] reference, string[] hypothesis)
+        {
+            static string MapWordsToUnicode(string[] words, Dictionary<string, int> wordDict)
+            {
+                StringBuilder _result = new StringBuilder();
+                foreach (var w in words)
+                {
+                    if (!wordDict.ContainsKey(w))
+                    {
+                        wordDict[w] = wordDict.Count;
+                    }
+                    int unicodeValue = wordDict[w] + 0x4e00;
+                    _result.Append(char.ConvertFromUtf32(unicodeValue));
+                }
+                return _result.ToString();
+            }
+
+            static int OverlappingCount(string pattern, string text)
+            {
+                try
+                {
+                    int pos = text.IndexOf(pattern);
+                    if (pos > -1)
+                    {
+                        return 1 + OverlappingCount(pattern, text.Substring(pos + 1));
+                    }
+                    else
+                    {
+                        return 0;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine(e);
+                    
+                }
+                return 0;
+            }
+
+            static string GetNgram(string text, int start, int length)
+            {
+                if (start < 0 || length < 0 || start> text.Length)
+                {
+                    return "";
+                }
+                int actualLength = Math.Min(length, text.Length - start);
+                return text.Substring(start, actualLength);
+            }
+
+            var bp = Math.Min(1.0, Math.Exp(1.0 - 1.0 * reference.Length / hypothesis.Length));
+            var intlist = new List<string> ();
+            var wordDict = new Dictionary<string, int>();
+
+            var mappedRef = MapWordsToUnicode(reference, wordDict);
+            var mappedHyp = MapWordsToUnicode(hypothesis, wordDict);
+
+            List<int> intList = new List<int>();
+            for (int i = 0; i < hypothesis.Length; i++)
+            {
+                if (!reference.Contains(hypothesis[i]))
+                {
+                    continue;
+                }
+                else if (reference.Count(x => x == hypothesis[i]) == 1 && hypothesis.Count(x => x == hypothesis[i]) == 1)
+                {
+                    intList.Add(Array.IndexOf(reference, hypothesis[i]));
+                }
+                else
+                {
+                    for (int window = 1; window <= Math.Max(i + 1, hypothesis.Length - i); window++)
+                    {
+                        if (window <= i)
+                        {
+                            string ngram = GetNgram(mappedHyp, i - window, window + 1);
+                            if (OverlappingCount(ngram, mappedRef) == 1 && OverlappingCount(ngram, mappedHyp) == 1)
+                            {
+                                intList.Add(mappedRef.IndexOf(ngram) + ngram.Length - 1);
+                                break;
+                            }
+                        }
+                        if (i + window < hypothesis.Length)
+                        {
+                            string ngram = GetNgram(mappedHyp, i, window + 1);
+                            if (OverlappingCount(ngram, mappedRef) == 1 && OverlappingCount(ngram, mappedHyp) == 1)
+                            {
+                                intList.Add(mappedRef.IndexOf(ngram));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            int n = intList.Count;
+            if (n == 1 && reference.Length == 1)
+            {
+                var p0 = 1.0 / hypothesis.Length;
+                return (1.0, p0, bp);
+            }
+            else if (n < 2)
+            {
+                return (0.0, 0.0, bp);
+            }
+
+            double ascending = 0.0;
+            for (int i = 0; i < n - 1; i++)
+            {
+                for (int j = i + 1; j < n; j++)
+                {
+                    if (intList[i] < intList[j])
+                    {
+                        ascending++;
+                    }
+                }
+            }
+
+            double nkt = ascending / (n * (n - 1) / 2.0);
+
+            var p = n / (double)hypothesis.Length;
+
+            // 結果を返す
+            return (nkt, p, bp);
+        }
+
+        /// <summary>
+        /// Calculates the RIBES (Rank-based Intuitive Bilingual Evaluation Score) for a set of hypotheses and references.
+        /// </summary>
+        /// <param name="referencesList">A three-dimensional array of strings. Each element is a list of reference translations for a single source sentence.</param>
+        /// <param name="hypotheses">A two-dimensional array of strings. Each element is a hypothesis translation for a single source sentence.</param>
+        /// <returns>A double representing the average RIBES score for all the hypotheses against their corresponding references.</returns>
+        public static double CorppusRibes(string[][][] referencesList, string[][] hypotheses)
+        {
+            string[][][] _ReferencesList = referencesList
+                .SelectMany((refs, i) => refs.Select((r, j) => new { i, j, r }))
+                .GroupBy(x => x.j, x => new { x.i, x.r })
+                .OrderBy(g => g.Key)
+                .Select(g => g.OrderBy(x => x.i).Select(x => x.r).ToArray())
+                .ToArray();
+
+            var alpha = 0.25;
+            var beta = 0.10;
+
+            var bestRibesAcc = 0.0;
+            var numValidRefs = 0;
+            var ribesList = new double[_ReferencesList.Length];
+            for (int i = 0; i < hypotheses.Length; i++)
+            {
+                double bestRibes = -1.0;
+
+                foreach (var reference in _ReferencesList)
+                {
+                    try
+                    {
+                        var (nkt, precision, bp) = CalculateKendallsTau(reference[i], hypotheses[i]);                        
+                        double ribes = nkt * Math.Pow(precision, alpha) * Math.Pow(bp, beta);
+                        if (ribes > bestRibes)
+                        {
+                            bestRibes = ribes;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.Error.WriteLine($"Error in reference line {i}: {e.Message}");
+                        throw;
+                    }
+                }
+
+                if (bestRibes > -1.0)
+                {
+                    numValidRefs++;
+                    bestRibesAcc += bestRibes;
+
+                    ribesList[i] = bestRibes;
+                }
+            }
+
+            return numValidRefs > 0 ? bestRibesAcc / numValidRefs : 0.0;
+        }
     }
-
-    //public class SmoothingFunction
-    //{
-    //    private double epsilon;
-    //    private double alpha;
-    //    private double k;
-
-    //    public SmoothingFunction(double epsilon = 0.1, double alpha = 5, double k = 5)
-    //    {
-    //        this.epsilon = epsilon;
-    //        this.alpha = alpha;
-    //        this.k = k;
-    //    }
-
-    //    /// <summary>
-    //    ///   No smoothing.
-    //    /// </summary>
-    //    public double[] Method0(double[] p_n)
-    //    {
-    //        var p_n_new = new double[p_n.Length];
-    //        for (int i = 0; i < p_n.Length; i++)
-    //        {
-    //            if (p_n[i] != 0)
-    //            {
-    //                p_n_new[i] = p_n[i];
-    //            }
-    //            else
-    //            {
-    //                string _msg = string.Format(
-    //                    "\nThe hypothesis contains 0 counts of {0}-gram overlaps.\n" +
-    //                    "Therefore the BLEU score evaluates to 0, independently of\n" +
-    //                    "how many N-gram overlaps of lower order it contains.\n" +
-    //                    "Consider using lower n-gram order or use " +
-    //                    "SmoothingFunction()", i + 1);
-    //                Console.WriteLine(_msg);
-    //                p_n_new[i] = double.Epsilon;
-    //            }
-    //        }
-    //        return p_n_new;
-    //    }
-
-    //    /// <summary>
-    //    /// Smoothing method 1: Add *epsilon* counts to precision with 0 counts.
-    //    /// </summary>
-    //    public double[] Method1(double[] p_n)
-    //    {
-    //        double[] p_n_new = new double[p_n.Length];
-    //        for (int i = 0; i < p_n.Length; i++)
-    //        {
-    //            if (p_n[i] == 0)
-    //            {
-    //                p_n_new[i] = epsilon / p_n[i];
-    //            }
-    //            else
-    //            {
-    //                p_n_new[i] = p_n[i];
-    //            }
-    //        }
-    //        return p_n_new;
-    //    }
-
-    //    /// <summary>
-    //    ///  Smoothing method 2: Add 1 to both numerator and denominator from
-    //    /// Chin-Yew Lin and Franz Josef Och(2004) ORANGE: a Method for
-    //    /// Evaluating Automatic Evaluation Metrics for Machine Translation.
-    //    /// In COLING 2004.
-    //    /// </summary>
-    //    public double[] Method2(double[] p_n)
-    //    {
-    //        double[] p_n_new = new double[p_n.Length];
-    //        for (int i = 0; i < p_n.Length; i++)
-    //        {
-    //            if (i != 0)
-    //            {
-    //                p_n_new[i] = (p_n[i] + 1) / (p_n[i] + 1);
-    //            }
-    //            else
-    //            {
-    //                p_n_new[i] = p_n[i];
-    //            }
-    //        }
-    //        return p_n_new;
-    //    }
-
-    //    /// <summary>
-    //    /// Smoothing method 3: NIST geometric sequence smoothing
-    //    /// The smoothing is computed by taking 1 / ( 2^k ), instead of 0, for each
-    //    /// precision score whose matching n-gram count is null.
-    //    /// k is 1 for the first 'n' value for which the n-gram match count is null.
-    //    ///
-    //    /// For example, if the text contains:
-    //    ///
-    //    /// - one 2-gram match
-    //    /// - and (consequently) two 1-gram matches
-    //    ///
-    //    /// the n-gram count for each individual precision score would be:
-    //    ///
-    //    /// - n=1  =>  prec_count = 2     (two unigrams)
-    //    /// - n=2  =>  prec_count = 1     (one bigram)
-    //    /// - n=3  =>  prec_count = 1/2   (no trigram,  taking 'smoothed' value of 1 / ( 2^k ), with k=1)
-    //    /// - n=4  =>  prec_count = 1/4   (no fourgram, taking 'smoothed' value of 1 / ( 2^k ), with k=2)
-    //    /// </summary>
-    //    public double[] Method3(double[] p_n)
-    //    {
-    //        int incvnt = 1;
-    //        for (int i = 0; i < p_n.Length; i++)
-    //        {
-    //            if (p_n[i] == 0)
-    //            {
-    //                p_n[i] = 1 / (Math.Pow(2, incvnt) * p_n[i]);
-    //                incvnt += 1;
-    //            }
-    //        }
-    //        return p_n;
-    //    }
-
-    //    /// <summary>
-    //    /// Smoothing method 4:
-    //    /// Shorter translations may have inflated precision values due to having
-    //    /// smaller denominators; therefore, we give them proportionally
-    //    /// smaller smoothed counts. Instead of scaling to 1/(2^k), Chen and Cherry
-    //    /// suggests dividing by 1/ln(len(T)), where T is the length of the translation.
-    //    /// </summary>
-    //    public double[] Method4(double[] p_n, string[][] references, string[] hypothesis, int hypLen = -1)
-    //    {
-    //        int incvnt = 1;
-    //        int hyp_len;
-    //        if (hypLen == -1) hyp_len = hypothesis.Length;
-    //        else hyp_len = hypLen;
-    //        for (int i = 0; i < p_n.Length; i++)
-    //        {
-    //            if (p_n[i] == 0 && hyp_len > 1)
-    //            {
-    //                double numerator = 1 / (Math.Pow(2, incvnt) * this.k / Math.Log(hyp_len));
-    //                p_n[i] = numerator / p_n[i];
-    //                incvnt += 1;
-    //            }
-    //        }
-    //        return p_n;
-    //    }
-
-    //    /// <summary>
-    //    /// Smoothing method 5:
-    //    /// The matched counts for similar values of n should be similar. To a
-    //    /// calculate the n-gram matched count, it averages the n−1, n and n+1 gram
-    //    /// matched counts.
-    //    /// </summary>
-    //    public double[] Method5(double[] p_n, string[][] references, string[] hypothesis, int? hypLen = null)
-    //    {
-    //        int hyp_len;
-    //        if (hypLen.HasValue)
-    //        {
-    //            hyp_len = hypLen.Value;
-    //        }
-    //        else
-    //        {
-    //            hyp_len = hypothesis.Length;
-    //        }
-    //        Dictionary<int, double> m = new Dictionary<int, double>();
-    //        // Requires a precision value for an additional ngram order.
-    //        // Here, you need to implement the 'modified_precision' method and add its result to 'p_n'.
-    //        var p_n_plus1 = new double[p_n.Length + 1];
-    //        p_n.CopyTo(p_n_plus1, 0);
-    //        p_n_plus1[p_n.Length] = BleuScore.ModifiedPrecision(references, hypothesis, 5);
-    //        m[-1] = p_n[0] + 1;
-    //        for (int i = 0; i < p_n.Length; i++)
-    //        {
-    //            p_n[i] = (m[i - 1] + p_n[i] + p_n_plus1[i + 1]) / 3;
-    //            m[i] = p_n[i];
-    //        }
-    //        return p_n;
-    //    }
-
-    //    /// <summary>
-    //    /// Smoothing method 6:
-    //    /// Interpolates the maximum likelihood estimate of the precision *p_n* with
-    //    /// a prior estimate *pi0*. The prior is estimated by assuming that the ratio
-    //    /// between pn and pn−1 will be the same as that between pn−1 and pn−2; from
-    //    /// Gao and He (2013) Training MRF-Based Phrase Translation Models using
-    //    /// Gradient Ascent. In NAACL.
-    //    /// </summary>
-    //    public double[] Method6(double[] p_n, string[][] references, string[] hypothesis, int? hypLen = null)
-    //    {
-    //        int hyp_len;
-    //        if (hypLen.HasValue)
-    //        {
-    //            hyp_len = hypLen.Value;
-    //        }
-    //        else
-    //        {
-    //            hyp_len = hypothesis.Length;
-    //        }
-    //        // This smoothing only works when p_1 and p_2 is non-zero.
-    //        // Raise an error with an appropriate message when the input is too short
-    //        // to use this smoothing technique.
-    //        if (p_n[2] == 0)
-    //        {
-    //            throw new ArgumentException("This smoothing method requires non-zero precision for bigrams.");
-    //        }
-    //        for (int i = 0; i < p_n.Length; i++)
-    //        {
-    //            if (i == 0 || i == 1)  // Skips the first 2 orders of ngrams.
-    //            {
-    //                continue;
-    //            }
-    //            else
-    //            {
-    //                double pi0 = p_n[i - 2] == 0 ? 0 : Math.Pow(p_n[i - 1], 2) / p_n[i - 2];
-    //                // No. of ngrams in translation that matches the reference.
-    //                double m = p_n[i];
-    //                // No. of ngrams in translation.
-    //                double l = hypothesis.Length - i + 1;  // You need to implement the 'ngrams' method and use its result here.
-    //                                                       // Calculates the interpolated precision.
-    //                p_n[i] = (m + this.alpha * pi0) / (l + this.alpha);
-    //            }
-    //        }
-    //        return p_n;
-    //    }
-
-    //    /// <summary>
-    //    /// Smoothing method 7:
-    //    /// Interpolates methods 4 and 5.
-    //    /// </summary>
-    //    public double[] Method7(double[] p_n, string[][] references, string[] hypothesis, int? hypLen = null)
-    //    {
-    //        int hyp_len;
-    //        if (hypLen.HasValue)
-    //        {
-    //            hyp_len = hypLen.Value;
-    //        }
-    //        else
-    //        {
-    //            hyp_len = hypothesis.Length;
-    //        }
-    //        p_n = Method4(p_n, references, hypothesis, hyp_len);
-    //        p_n = Method5(p_n, references, hypothesis, hyp_len);
-    //        return p_n;
-    //    }
-    //}
 }
