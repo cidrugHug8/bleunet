@@ -1,11 +1,9 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace BleuNet
 {
-    public static class BleuScore
+    public static class Metrics
     {
         /// <summary>
         /// Fraction class.
@@ -348,38 +346,6 @@ namespace BleuNet
             return ngrams;
         }
 
-        public static string[] Tokenize(string line, bool lc = true)
-        {
-            string norm = line;
-
-            if (lc)
-            {
-                norm = norm.ToLower();
-            }
-
-            // language-independent part:
-            norm = norm.Replace("<skipped>", "");
-            norm = norm.Replace("-\n", "");
-            norm = norm.Replace("\n", " ");
-            norm = norm.Replace("&quot;", "\"");
-            norm = norm.Replace("&amp;", "&");
-            norm = norm.Replace("&lt;", "<");
-            norm = norm.Replace("&gt;", ">");
-
-            // language-dependent part (assuming Western languages):
-            norm = " " + norm + " ";
-            norm = Regex.Replace(norm, "([\\{-\\~\\[-\\` -\\&\\(-\\+\\:-\\@\\/])", " $1 ");
-            norm = Regex.Replace(norm, "([^0-9])([\\.,])", "$1 $2 ");
-            norm = Regex.Replace(norm, "([\\.,])([^0-9])", " $1 $2");
-            norm = Regex.Replace(norm, "([0-9])(-)", "$1 $2 ");
-            norm = Regex.Replace(norm, "\\s+", " ");  // one space only between words
-            norm = norm.Trim();  // no leading or trailing space
-
-            var segmented = norm.Split();
-
-            return segmented;
-        }
-
         public static (double nkt, double precision, double bp) CalculateKendallsTau(string[] reference, string[] hypothesis)
         {
             static string MapWordsToUnicode(string[] words, Dictionary<string, int> wordDict)
@@ -500,7 +466,6 @@ namespace BleuNet
 
             var p = n / (double)hypothesis.Length;
 
-            // 結果を返す
             return (nkt, p, bp);
         }
 

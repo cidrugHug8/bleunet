@@ -14,12 +14,12 @@ namespace BleuNetTest
 
             var references = new string[][] { ref1, ref2 };
 
-            var hyp1UnigramPrecision = BleuScore.ModifiedPrecision(references, hyp1, 1);
+            var hyp1UnigramPrecision = Metrics.ModifiedPrecision(references, hyp1, 1);
             Assert.Equal(0.2857, Math.Round(hyp1UnigramPrecision, 4));
 
             Assert.Equal(0.28571428, hyp1UnigramPrecision, 0.0001);
 
-            Assert.Equal(0.0, BleuScore.ModifiedPrecision(references, hyp1, 2));
+            Assert.Equal(0.0, Metrics.ModifiedPrecision(references, hyp1, 2));
         }
 
         [Fact]
@@ -33,9 +33,9 @@ namespace BleuNetTest
 
             var references = new string[][] { ref1, ref2, ref3 };
 
-            Assert.Equal(1.0, BleuScore.ModifiedPrecision(references, hyp1, 1));
+            Assert.Equal(1.0, Metrics.ModifiedPrecision(references, hyp1, 1));
 
-            Assert.Equal(1.0, BleuScore.ModifiedPrecision(references, hyp1, 2));
+            Assert.Equal(1.0, Metrics.ModifiedPrecision(references, hyp1, 2));
         }
 
         [Fact]
@@ -50,8 +50,8 @@ namespace BleuNetTest
 
             var references = new string[][] { ref1, ref2, ref3 };
 
-            var hyp1UnigramPrecision = BleuScore.ModifiedPrecision(references, hyp1, 1);
-            var hyp2UnigramPrecision = BleuScore.ModifiedPrecision(references, hyp2, 1);
+            var hyp1UnigramPrecision = Metrics.ModifiedPrecision(references, hyp1, 1);
+            var hyp2UnigramPrecision = Metrics.ModifiedPrecision(references, hyp2, 1);
 
             Assert.Equal(0.94444444, hyp1UnigramPrecision, 0.0001);
             Assert.Equal(0.57142857, hyp2UnigramPrecision, 0.0001);
@@ -59,8 +59,8 @@ namespace BleuNetTest
             Assert.Equal(0.9444, Math.Round(hyp1UnigramPrecision, 4));
             Assert.Equal(0.5714, Math.Round(hyp2UnigramPrecision, 4));
 
-            var hyp1BigramPrecision = BleuScore.ModifiedPrecision(references, hyp1, 2);
-            var hyp2BigramPrecision = BleuScore.ModifiedPrecision(references, hyp2, 2);
+            var hyp1BigramPrecision = Metrics.ModifiedPrecision(references, hyp1, 2);
+            var hyp2BigramPrecision = Metrics.ModifiedPrecision(references, hyp2, 2);
 
             Assert.Equal(0.58823529, hyp1BigramPrecision, 0.0001);
             Assert.Equal(0.07692307, hyp2BigramPrecision, 0.0001);
@@ -75,13 +75,13 @@ namespace BleuNetTest
             var references = new string[][] { Enumerable.Repeat("a", 11).ToArray(), Enumerable.Repeat("a", 8).ToArray() };
             var hypothesis = Enumerable.Repeat("a", 7).ToArray();
             var hypLen = hypothesis.Length;
-            var closestRefLen = BleuScore.ClosestRefLength(references, hypLen);
-            Assert.Equal(0.8669, BleuScore.BrevityPenalty(closestRefLen, hypLen), 0.0001);
+            var closestRefLen = Metrics.ClosestRefLength(references, hypLen);
+            Assert.Equal(0.8669, Metrics.BrevityPenalty(closestRefLen, hypLen), 0.0001);
 
             references = [Enumerable.Repeat("a", 11).ToArray(), Enumerable.Repeat("a", 8).ToArray(), Enumerable.Repeat("a", 6).ToArray(), Enumerable.Repeat("a", 7).ToArray()];
             hypLen = hypothesis.Length;
-            closestRefLen = BleuScore.ClosestRefLength(references, hypLen);
-            Assert.Equal(1.0, BleuScore.BrevityPenalty(closestRefLen, hypLen));
+            closestRefLen = Metrics.ClosestRefLength(references, hypLen);
+            Assert.Equal(1.0, Metrics.BrevityPenalty(closestRefLen, hypLen));
         }
 
         [Fact]
@@ -95,7 +95,7 @@ namespace BleuNetTest
             for (int n = 1; n < hypothesis.Length; n++)
             {
                 double[] weights = Enumerable.Repeat(1.0 / n, n).ToArray();  // Uniform weights.
-                Assert.Equal(0.0, BleuScore.SentenceBleu(references, hypothesis, weights));
+                Assert.Equal(0.0, Metrics.SentenceBleu(references, hypothesis, weights));
             }
         }
 
@@ -110,7 +110,7 @@ namespace BleuNetTest
             for (int n = 1; n < hypothesis.Length; n++)
             {
                 double[] weights = Enumerable.Repeat(1.0 / n, n).ToArray();  // Uniform weights.
-                Assert.Equal(1.0, BleuScore.SentenceBleu(references, hypothesis, weights));
+                Assert.Equal(1.0, Metrics.SentenceBleu(references, hypothesis, weights));
             }
         }
 
@@ -122,7 +122,7 @@ namespace BleuNetTest
 
             // Since no 4-grams matches were found the result should be zero
             // exp(w_1 * 1 * w_2 * 1 * w_3 * 1 * w_4 * -inf) = 0
-            Assert.Equal(0.0, BleuScore.SentenceBleu(references, hypothesis), 0.0001);
+            Assert.Equal(0.0, Metrics.SentenceBleu(references, hypothesis), 0.0001);
 
             // Checks that the warning has been raised because len(reference) < 4.
             // In C#, there's no direct equivalent for Python's warnings, so this part is omitted.
@@ -144,14 +144,14 @@ namespace BleuNetTest
                 weights[i] = 1.0 / n;
             }
 
-            double bleuScore = BleuScore.SentenceBleu(references, hypothesis, weights);
+            double bleuScore = Metrics.SentenceBleu(references, hypothesis, weights);
 
             Assert.Equal(0.0, bleuScore, 4);
 
             references = ["John", "loves", "Mary"];
             hypothesis = ["John", "loves", "Mary"];
 
-            bleuScore = BleuScore.SentenceBleu(references, hypothesis, weights);
+            bleuScore = Metrics.SentenceBleu(references, hypothesis, weights);
 
             Assert.Equal(0.0, bleuScore, 4);
         }
@@ -162,7 +162,7 @@ namespace BleuNetTest
             var references = new string[] { "The", "candidate", "has", "no", "alignment", "to", "any", "of", "the", "references" };
             string[] hypothesis = [];
 
-            double bleuScore = BleuScore.SentenceBleu(references, hypothesis);
+            double bleuScore = Metrics.SentenceBleu(references, hypothesis);
 
             Assert.Equal(0.0, bleuScore);
         }
@@ -189,7 +189,7 @@ namespace BleuNetTest
             var references = new string[][] { [] };
             var hypothesis = new string[] { "John", "loves", "Mary" };
 
-            double bleuScore = BleuScore.SentenceBleu(references, hypothesis);
+            double bleuScore = Metrics.SentenceBleu(references, hypothesis);
 
             Assert.Equal(0.0, bleuScore);
         }
@@ -200,7 +200,7 @@ namespace BleuNetTest
             string[][] references = [[]];
             string[] hypothesis = [];
 
-            double bleuScore = BleuScore.SentenceBleu(references, hypothesis);
+            double bleuScore = Metrics.SentenceBleu(references, hypothesis);
 
             Assert.Equal(0.0, bleuScore);
         }
@@ -211,7 +211,7 @@ namespace BleuNetTest
             var references = new string[] { "let", "it", "go" };
             var hypothesis = new string[] { "let", "go", "it" };
 
-            double bleuScore = BleuScore.SentenceBleu(references, hypothesis);
+            double bleuScore = Metrics.SentenceBleu(references, hypothesis);
 
             Assert.Equal(0.0, bleuScore, 4);
         }
@@ -228,7 +228,7 @@ namespace BleuNetTest
                 weights[i] = 0.25;
             }
 
-            double bleuScore = BleuScore.SentenceBleu(references, hypothesis, weights);
+            double bleuScore = Metrics.SentenceBleu(references, hypothesis, weights);
 
             Assert.Equal(0.0, bleuScore);
         }
@@ -249,7 +249,7 @@ namespace BleuNetTest
 
             // Check that the warning is raised since no. of 2-grams < 0.
             // Verify that the BLEU output is undesired since no. of 2-grams < 0.
-            Assert.Equal(0.0, BleuScore.CorpusBleu(references, hypotheses, new double[] { 0.25, 0.25, 0.25, 0.25 }), 0.0001);
+            Assert.Equal(0.0, Metrics.CorpusBleu(references, hypotheses, new double[] { 0.25, 0.25, 0.25, 0.25 }), 0.0001);
         }
     }
 
@@ -364,25 +364,25 @@ namespace BleuNetTest
             var weight2 = new double[] { 0.25, 0.25, 0.25, 0.25 };
             var weight3 = new double[] { 0.0, 0.0, 0.0, 1.0 };
 
-            double[] bleuScores = BleuScore.CorpusBleu(
+            double[] bleuScores = Metrics.CorpusBleu(
                 [[ref1a, ref1b, ref1c], [ref2a]],
                 [hyp1, hyp2],
                 new double[][] { weight1, weight2, weight3 }
             );
 
-            Assert.Equal(bleuScores[0], BleuScore.CorpusBleu(
+            Assert.Equal(bleuScores[0], Metrics.CorpusBleu(
                 [[ref1a, ref1b, ref1c], [ref2a]],
                 [hyp1, hyp2],
                 weight1
             ));
 
-            Assert.Equal(bleuScores[1], BleuScore.CorpusBleu(
+            Assert.Equal(bleuScores[1], Metrics.CorpusBleu(
                 [[ref1a, ref1b, ref1c], [ref2a]],
                 [hyp1, hyp2],
                 weight2
             ));
 
-            Assert.Equal(bleuScores[2], BleuScore.CorpusBleu(
+            Assert.Equal(bleuScores[2], Metrics.CorpusBleu(
                 [[ref1a, ref1b, ref1c], [ref2a]],
                 [hyp1, hyp2],
                 weight3
@@ -399,7 +399,7 @@ namespace BleuNetTest
         {
             string[][][] references = [["The candidate has no alignment to any of the references".Split()]];
             string[][] hypothesis = ["John loves Mary".Split()];
-            Assert.Equal(0.0, BleuScore.CorppusRibes(references, hypothesis));
+            Assert.Equal(0.0, Metrics.CorppusRibes(references, hypothesis));
         }
 
         [Fact]
@@ -407,7 +407,7 @@ namespace BleuNetTest
         {
             string[][][] ref1 = [["He enjoys taking a walk in the park every day .".Split()]];
             string[][] hyp1 = ["He likes to walk in the park daily .".Split()];
-            Assert.Equal(0.883743, BleuScore.CorppusRibes(ref1, hyp1), 0.000001);
+            Assert.Equal(0.883743, Metrics.CorppusRibes(ref1, hyp1), 0.000001);
         }
 
         [Fact]
@@ -419,7 +419,7 @@ namespace BleuNetTest
             string[][] hyp1 = [
                 "He likes to walk in the park daily, and then enjoys his coffee at a cafe while reading the newspaper, which is his daily routine .".Split()
             ];
-            Assert.Equal(0.678417, BleuScore.CorppusRibes(ref1, hyp1), 0.000001);
+            Assert.Equal(0.678417, Metrics.CorppusRibes(ref1, hyp1), 0.000001);
         }
 
         [Fact]
@@ -435,7 +435,7 @@ namespace BleuNetTest
             //Assert.Equal(0.634183, BleuScore.CorppusRibes([[ref2]], hyp1), 0.000001);
 
             string[][][] references = [[ref1, ref2]];
-            Assert.Equal(0.634183, BleuScore.CorppusRibes(references, hyp1), 0.000001);
+            Assert.Equal(0.634183, Metrics.CorppusRibes(references, hyp1), 0.000001);
         }
     }
 }
