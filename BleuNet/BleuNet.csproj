@@ -13,8 +13,9 @@
     <Description>BleuNet is a C# class library for calculating the BLEU score, a metric for evaluating the quality of machine translations.</Description>
     <Title>BleuNet</Title>
     <PackageProjectUrl>https://github.com/cidrugHug8/bleunet</PackageProjectUrl>
-    <AssemblyVersion>1.0.1.0</AssemblyVersion>
-    <FileVersion>1.0.1.0</FileVersion>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
+    <VersionPrefix>1.0.2</VersionPrefix>    
   </PropertyGroup>
 
   <ItemGroup>

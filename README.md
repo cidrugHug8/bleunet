@@ -34,6 +34,16 @@ double sentenceBleu = Metrics.SentenceBleu(referenceSentenceTokens, Utility.Toke
 Console.WriteLine("Sentence BLEU Score: " + sentenceBleu);
 ```
 
+## New Update: Tokenize2 Method
+I have added a new method `Tokenize2` to my library. This method's tokenization is designed to closely match the tokenization of the tokenizer.perl script included with the statistical machine translation tool Moses when specified with -l en.
+
+Here is a basic usage example:
+
+```csharp
+string text = "The quick brown fox jumps over the lazy dog.";
+string[] tokens = Utility.Tokenize2(text);
+```
+
 ## References
 
 **BLEU**:

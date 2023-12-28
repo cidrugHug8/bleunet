@@ -1,21 +1,23 @@
 ﻿using BleuNet;
 
-// Define the translated and reference sentences.
-string referenceSentence = "The pessimist sees difficulty in every opportunity.";
-string translatedSentence = "The pessimist sees difficulty at every opportunity.";
+string referenceSentence = "Dr. Smith goes to the hospital. She arrives at 3:30 p.m.";
+var z = Utility.Tokenize2(referenceSentence);
+//// Define the translated and reference sentences.
+//string referenceSentence = "The pessimist sees difficulty in every opportunity.";
+//string translatedSentence = "The pessimist sees difficulty at every opportunity.";
 
-var referenceSentenceTokens = new string[][] { Utility.Tokenize(referenceSentence) };
-var translatedSentenceTokens = new string[][] { Utility.Tokenize(translatedSentence) };
+//var referenceSentenceTokens = new string[][] { Utility.Tokenize(referenceSentence) };
+//var translatedSentenceTokens = new string[][] { Utility.Tokenize(translatedSentence) };
 
-// Calculate the BLEU score.
-double score = Metrics.CorpusBleu(referenceSentenceTokens, translatedSentenceTokens);
+//// Calculate the BLEU score.
+//double score = Metrics.CorpusBleu(referenceSentenceTokens, translatedSentenceTokens);
 
-// Display the result.
-Console.WriteLine("BLEU Score: " + score);
+//// Display the result.
+//Console.WriteLine("BLEU Score: " + score);
 
-// Calculate the sentence BLEU score.
-double sentenceBleu = Metrics.SentenceBleu(referenceSentenceTokens, Utility.Tokenize(translatedSentence));
-Console.WriteLine("Sentence BLEU Score: " + sentenceBleu);
+//// Calculate the sentence BLEU score.
+//double sentenceBleu = Metrics.SentenceBleu(referenceSentenceTokens, Utility.Tokenize(translatedSentence));
+//Console.WriteLine("Sentence BLEU Score: " + sentenceBleu);
 
 
 //// Define the translated and reference sentences.
